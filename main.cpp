@@ -4,11 +4,11 @@
 #include "wiringPi.h"
 #include "wiringPiI2C.h"
 #include "BNO055.h"
+#include "SHT4X.h"
 
 #define BNO055_SAMPLERATE_DELAY_MS (100)
 
 int main(int argc, char* argv[]) {
-    BNO055 bno;
 
     if (wiringPiSetup() == -1)
     {
@@ -16,10 +16,18 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    int handle = wiringPiI2CSetup(BNO055_ADDRESS_A);
-    bno.SetI2CHandle(handle);
+    BNO055 bno(BNO055_ID, BNO055_ADDRESS_A);
+    SHT4x sht4_x(SHT4x_DEFAULT_ADDR, SHT4x_HUMIDITY_ID, SHT4x_TEMPERATURE_ID );
+    sht4_x.begin();
 
-    std::cout << "Orientation Sensor Raw Data Test" << std::endl;
+    float humidity;
+    float temperature;
+    for (int i=0;i<10;i++) {
+        sht4_x.Read(humidity, temperature);
+        std::cout << "Humidity (%RH): " << humidity << "    Temperature (degC): " << temperature << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+    std::cout << "\n\n\nOrientation Sensor Raw Data Test" << std::endl;
 
     /* Initialise the sensor */
     if(!bno.begin())
@@ -54,19 +62,11 @@ int main(int argc, char* argv[]) {
         std::cout << "X: " << euler.x() <<  " Y: " << euler.y() << " Z: "
           << euler.z() << "\t\t";
 
-        /*
+
         // Quaternion data
         imu::Quaternion quat = bno.getQuat();
-        Serial.print("qW: ");
-        Serial.print(quat.w(), 4);
-        Serial.print(" qX: ");
-        Serial.print(quat.y(), 4);
-        Serial.print(" qY: ");
-        Serial.print(quat.x(), 4);
-        Serial.print(" qZ: ");
-        Serial.print(quat.z(), 4);
-        Serial.print("\t\t");
-        */
+        std::cout << "qW: " << quat.w() << " qX: " << quat.y() << " qY: " << quat.x() << " qZ: " << quat.z() << "\t\t";
+
 
         /* Display calibration status for each sensor. */
         uint8_t system, gyro, accel, mag = 0;

@@ -3,7 +3,6 @@
 #include "imumaths.h"
 #include "wiringPi.h"
 #include "wiringPiI2C.h"
-#include "Sensor.h"
 
 #define BNO055_ADDRESS_A (0x28)
 #define BNO055_ADDRESS_B (0x29)
@@ -47,7 +46,7 @@ typedef enum {
   OPERATION_MODE_NDOF = 0X0C
 } bno055_opmode_t;
 
-class BNO055 : public Sensor {
+class BNO055 {
 public:
   /** BNO055 Registers **/
   typedef enum {
@@ -266,11 +265,6 @@ public:
   imu::Quaternion getQuat();
   int8_t getTemp();
 
-  /* Sensor implementation */
-  bool getEvent(sensors_event_t *);
-  bool getEvent(sensors_event_t *, vector_type_t);
-  void getSensor(sensor_t *);
-
   /* Functions to deal with raw calibration data */
   bool getSensorOffsets(uint8_t *calibData);
   bool getSensorOffsets(bno055_offsets_t &offsets_type);
@@ -282,7 +276,6 @@ public:
   void enterSuspendMode();
   void enterNormalMode();
 
-  void SetI2CHandle(int handle) { _handle = handle; }
   int Channel() { return _channel; }
 
 private:

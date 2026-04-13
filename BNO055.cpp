@@ -7,6 +7,8 @@ BNO055::BNO055(int32_t sensorID, uint8_t address) {
   _sensorID = sensorID;
   _address = address;
   _channel = 1;
+
+  _handle = wiringPiI2CSetup(BNO055_ADDRESS_A);
 }
 
 /*!
@@ -199,9 +201,7 @@ void BNO055::setExtCrystalUse(bool usextal) {
  *   @param  system_error
  *           system error info
  */
-void BNO055::getSystemStatus(uint8_t *system_status,
-                                      uint8_t *self_test_result,
-                                      uint8_t *system_error) {
+void BNO055::getSystemStatus(uint8_t *system_status, uint8_t *self_test_result, uint8_t *system_error) {
   write8(BNO055_PAGE_ID_ADDR, 0);
 
   /* System Status (see section 4.3.58)
@@ -251,11 +251,6 @@ void BNO055::getSystemStatus(uint8_t *system_status,
   std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
 
-/*!
- *  @brief  Gets the chip revision numbers
- *  @param  info
- *          revision info
- */
 void BNO055::getRevInfo(bno055_rev_info_t *info) {
   uint8_t a, b;
 
@@ -421,116 +416,6 @@ imu::Quaternion BNO055::getQuat() {
   return quat;
 }
 
-/*!
- *  @brief  Provides the sensor_t data for this sensor
- *  @param  sensor
- *          Sensor description
- */
-void BNO055::getSensor(sensor_t *sensor) {
-  /* Clear the sensor_t object */
-  memset(sensor, 0, sizeof(sensor_t));
-
-  /* Insert the sensor name in the fixed length char array */
-  strncpy(sensor->name, "BNO055", sizeof(sensor->name) - 1);
-  sensor->name[sizeof(sensor->name) - 1] = 0;
-  sensor->version = 1;
-  sensor->sensor_id = _sensorID;
-  sensor->type = SENSOR_TYPE_ORIENTATION;
-  sensor->min_delay = 0;
-  sensor->max_value = 0.0F;
-  sensor->min_value = 0.0F;
-  sensor->resolution = 0.01F;
-}
-
-/*!
- *  @brief  Reads the sensor and returns the data as a sensors_event_t
- *  @param  event
- *          Event description
- *  @return always returns true
- */
-bool BNO055::getEvent(sensors_event_t *event) {
-  /* Clear the event */
-  memset(event, 0, sizeof(sensors_event_t));
-
-  event->version = sizeof(sensors_event_t);
-  event->sensor_id = _sensorID;
-  event->type = SENSOR_TYPE_ORIENTATION;
-  event->timestamp = 1000; // millis();
-
-  /* Get a Euler angle sample for orientation */
-  imu::Vector<3> euler = getVector(BNO055::VECTOR_EULER);
-  event->orientation.x = euler.x();
-  event->orientation.y = euler.y();
-  event->orientation.z = euler.z();
-
-  return true;
-}
-
-/*!
- *  @brief  Reads the sensor and returns the data as a sensors_event_t
- *  @param  event
- *          Event description
- *  @param  vec_type
- *          specify the type of reading
- *  @return always returns true
- */
-bool BNO055::getEvent(sensors_event_t *event,
-                               vector_type_t vec_type) {
-  /* Clear the event */
-  memset(event, 0, sizeof(sensors_event_t));
-
-  event->version = sizeof(sensors_event_t);
-  event->sensor_id = _sensorID;
-  event->timestamp = 1000; // millis();
-
-  // read the data according to vec_type
-  imu::Vector<3> vec;
-  if (vec_type == BNO055::VECTOR_LINEARACCEL) {
-    event->type = SENSOR_TYPE_LINEAR_ACCELERATION;
-    vec = getVector(BNO055::VECTOR_LINEARACCEL);
-
-    event->acceleration.x = vec.x();
-    event->acceleration.y = vec.y();
-    event->acceleration.z = vec.z();
-  } else if (vec_type == BNO055::VECTOR_ACCELEROMETER) {
-    event->type = SENSOR_TYPE_ACCELEROMETER;
-    vec = getVector(BNO055::VECTOR_ACCELEROMETER);
-
-    event->acceleration.x = vec.x();
-    event->acceleration.y = vec.y();
-    event->acceleration.z = vec.z();
-  } else if (vec_type == BNO055::VECTOR_GRAVITY) {
-    event->type = SENSOR_TYPE_GRAVITY;
-    vec = getVector(BNO055::VECTOR_GRAVITY);
-
-    event->acceleration.x = vec.x();
-    event->acceleration.y = vec.y();
-    event->acceleration.z = vec.z();
-  } else if (vec_type == BNO055::VECTOR_EULER) {
-    event->type = SENSOR_TYPE_ORIENTATION;
-    vec = getVector(BNO055::VECTOR_EULER);
-
-    event->orientation.x = vec.x();
-    event->orientation.y = vec.y();
-    event->orientation.z = vec.z();
-  } else if (vec_type == BNO055::VECTOR_GYROSCOPE) {
-    event->type = SENSOR_TYPE_GYROSCOPE;
-    vec = getVector(BNO055::VECTOR_GYROSCOPE);
-
-    event->gyro.x = vec.x() * SENSORS_DPS_TO_RADS;
-    event->gyro.y = vec.y() * SENSORS_DPS_TO_RADS;
-    event->gyro.z = vec.z() * SENSORS_DPS_TO_RADS;
-  } else if (vec_type == BNO055::VECTOR_MAGNETOMETER) {
-    event->type = SENSOR_TYPE_MAGNETIC_FIELD;
-    vec = getVector(BNO055::VECTOR_MAGNETOMETER);
-
-    event->magnetic.x = vec.x();
-    event->magnetic.y = vec.y();
-    event->magnetic.z = vec.z();
-  }
-
-  return true;
-}
 
 /*!
  *  @brief  Reads the sensor's offset registers into a byte array

@@ -11,6 +11,8 @@ add_executable(BNO055
         matrix.h
         quaternion.h
         vector.h
-        Sensor.h)
+        Sensor.h
+        SHT4X.cpp
+        SHT4X.h)
 
 target_link_libraries(BNO055 wiringPi)
